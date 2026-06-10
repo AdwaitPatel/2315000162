@@ -5,15 +5,7 @@
 ### Get Notifications
 
 ```http
-GET /api/notifications
-```
-
-Headers:
-
-```json
-{
-  "Authorization": "Bearer <token>"
-}
+GET /notifications
 ```
 
 Response:
@@ -22,11 +14,9 @@ Response:
 {
   "notifications": [
     {
-      "id": "123",
-      "type": "Placement",
+      "id": 1,
       "message": "Google Hiring",
-      "isRead": false,
-      "createdAt": "2026-04-22T17:51:30Z"
+      "isRead": false
     }
   ]
 }
@@ -37,14 +27,14 @@ Response:
 ### Mark Notification as Read
 
 ```http
-PATCH /api/notifications/{id}/read
+PATCH /notifications/{id}
 ```
 
 Response:
 
 ```json
 {
-  "message": "Notification marked as read"
+  "message": "Read successfully"
 }
 ```
 
@@ -53,7 +43,7 @@ Response:
 ### Mark All Notifications as Read
 
 ```http
-PATCH /api/notifications/read-all
+PATCH /notifications/read-all
 ```
 
 Response:
@@ -69,14 +59,13 @@ Response:
 ### Create Notification
 
 ```http
-POST /api/notifications
+POST /notifications
 ```
 
 Request:
 
 ```json
 {
-  "type": "Placement",
   "message": "Amazon Hiring"
 }
 ```
@@ -85,7 +74,7 @@ Response:
 
 ```json
 {
-  "message": "Notification created"
+  "message": "Notification added"
 }
 ```
 
@@ -94,14 +83,14 @@ Response:
 ### Delete Notification
 
 ```http
-DELETE /api/notifications/{id}
+DELETE /notifications/{id}
 ```
 
 Response:
 
 ```json
 {
-  "message": "Notification deleted"
+  "message": "Deleted"
 }
 ```
 
@@ -109,19 +98,179 @@ Response:
 
 ## Real-Time Notification Mechanism
 
-Use WebSockets (Socket.IO).
+I would use WebSockets.
 
 Flow:
 
-1. Notification created
-2. Saved in DB
-3. Event published
-4. Connected students receive notification instantly
+1. Notification is created
+2. Save it in database
+3. Send it through WebSocket
+4. Student receives it instantly
 
-Benefits:
+Advantages:
 
-* Real-time delivery
-* Reduced polling
-* Better scalability
+* Fast delivery
+* No need for constant refresh
 
 ---
+
+# Stage 2
+
+## Database Choice
+
+PostgreSQL
+
+Reason:
+
+* Easy to use
+* Supports SQL
+* Good for storing notifications
+
+---
+
+## Schema
+
+### students
+
+```sql
+CREATE TABLE students (
+    studentID BIGINT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+```
+
+### notifications
+
+```sql
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    studentID BIGINT,
+    message TEXT,
+    isRead BOOLEAN DEFAULT FALSE,
+    createdAt TIMESTAMP,
+    FOREIGN KEY(studentID) REFERENCES students(studentID)
+);
+```
+
+---
+
+## Scaling Challenges
+
+Some possible issues:
+
+* Too many notifications
+* Slow queries
+* More users
+
+Possible solutions:
+
+* Add indexes
+* Use cache
+* Use replicas
+
+---
+
+## Example Queries
+
+Get notifications:
+
+```sql
+SELECT * 
+FROM notifications
+WHERE studentID = ?;
+```
+
+Unread notifications:
+
+```sql
+SELECT *
+FROM notifications
+WHERE studentID = ?
+AND isRead = FALSE;
+```
+
+Mark as read:
+
+```sql
+UPDATE notifications
+SET isRead = TRUE
+WHERE id = ?;
+```
+
+---
+
+# Stage 3
+
+## Is Query Correct?
+
+Yes.
+
+```sql
+SELECT *
+FROM notifications
+WHERE studentID = 1042
+AND isRead = FALSE
+ORDER BY createdAt DESC;
+```
+
+It returns unread notifications for student 1042.
+
+---
+
+## Why Can It Be Slow?
+
+Because there may be millions of rows in the table.
+
+Database may need to check many records.
+
+---
+
+## Index
+
+```sql
+CREATE INDEX idx_notification
+ON notifications(studentID, isRead);
+```
+
+---
+
+## Complexity
+
+Without index:
+
+```text
+O(N)
+```
+
+With index:
+
+```text
+O(log N)
+```
+
+---
+
+## Should We Index Everything?
+
+No.
+
+Reasons:
+
+* Takes more space
+* Slower inserts
+* More maintenance
+
+---
+
+## Placement Notifications in Last 7 Days
+
+```sql
+SELECT *
+FROM notifications
+WHERE notificationType = 'Placement'
+AND createdAt >= NOW() - INTERVAL '7 days';
+```
+
+---
+
