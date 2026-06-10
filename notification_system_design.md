@@ -358,6 +358,43 @@ if failed
     retry
 ```
 
+---
+
+# Stage 6
+
+## Priority Logic
+
+Priority is calculated using:
+Priority Weight:
+- Placement = 3
+- Result = 2
+- Event = 1
+
+Final Score:
+score = (typeWeight × 1000) + recencyScore
+
+This ensures: Placement > Result > Event
+while newer notifications are ranked higher within the same category.
+
+## Efficient Top 10 Maintenance
+
+Sorting all notifications repeatedly is expensive.
+
+Instead, maintain a Min Heap of size 10.
+
+When a new notification arrives:
+
+1. Calculate score.
+2. If heap size < 10, insert.
+3. Else compare with heap root.
+4. Replace root if new score is higher.
+
+Complexity:
+Insert: O(log 10)
+Memory: O(10)
+
+This allows efficient maintenance of the top 10 notifications even when millions of notifications arrive.
+
 
 
 
