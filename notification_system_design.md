@@ -7,9 +7,7 @@
 ```http
 GET /notifications
 ```
-
 Response:
-
 ```json
 {
   "notifications": [
@@ -29,9 +27,7 @@ Response:
 ```http
 PATCH /notifications/{id}
 ```
-
 Response:
-
 ```json
 {
   "message": "Read successfully"
@@ -101,14 +97,12 @@ Response:
 I would use WebSockets.
 
 Flow:
-
 1. Notification is created
 2. Save it in database
 3. Send it through WebSocket
 4. Student receives it instantly
 
 Advantages:
-
 * Fast delivery
 * No need for constant refresh
 
@@ -121,7 +115,6 @@ Advantages:
 PostgreSQL
 
 Reason:
-
 * Easy to use
 * Supports SQL
 * Good for storing notifications
@@ -158,13 +151,11 @@ CREATE TABLE notifications (
 ## Scaling Challenges
 
 Some possible issues:
-
 * Too many notifications
 * Slow queries
 * More users
 
 Possible solutions:
-
 * Add indexes
 * Use cache
 * Use replicas
@@ -174,7 +165,6 @@ Possible solutions:
 ## Example Queries
 
 Get notifications:
-
 ```sql
 SELECT * 
 FROM notifications
@@ -182,7 +172,6 @@ WHERE studentID = ?;
 ```
 
 Unread notifications:
-
 ```sql
 SELECT *
 FROM notifications
@@ -191,7 +180,6 @@ AND isRead = FALSE;
 ```
 
 Mark as read:
-
 ```sql
 UPDATE notifications
 SET isRead = TRUE
@@ -205,7 +193,6 @@ WHERE id = ?;
 ## Is Query Correct?
 
 Yes.
-
 ```sql
 SELECT *
 FROM notifications
@@ -227,7 +214,6 @@ Database may need to check many records.
 ---
 
 ## Index
-
 ```sql
 CREATE INDEX idx_notification
 ON notifications(studentID, isRead);
@@ -236,9 +222,7 @@ ON notifications(studentID, isRead);
 ---
 
 ## Complexity
-
 Without index:
-
 ```text
 O(N)
 ```
@@ -254,9 +238,7 @@ O(log N)
 ## Should We Index Everything?
 
 No.
-
 Reasons:
-
 * Takes more space
 * Slower inserts
 * More maintenance
@@ -273,4 +255,110 @@ AND createdAt >= NOW() - INTERVAL '7 days';
 ```
 
 ---
+
+# Stage 4
+
+## Problem
+
+Every request goes to database.
+This can make the system slower.
+
+---
+
+## Solutions
+
+### Cache
+Use Redis to store frequently used notifications.
+Pros:
+
+* Faster
+
+Cons:
+
+* Extra setup
+
+---
+
+### Pagination
+
+```http
+GET /notifications?page=1&limit=20
+```
+
+Pros:
+* Less data returned
+Cons:
+* Multiple pages
+
+---
+
+### Read Replica
+
+Pros:
+* Handles more reads
+Cons:
+* More servers needed
+
+---
+
+### WebSockets
+
+Pros:
+* Real-time updates
+Cons:
+* Open connections need to be maintained
+
+---
+
+# Stage 5
+
+## Problems in Current Design
+* Slow process
+* No retry mechanism
+* Email sending can fail
+* Everything runs one by one
+
+---
+
+## Better Design
+Use:
+* Queue
+* Worker
+* Retry logic
+
+---
+
+## Flow
+1. Save notification
+2. Put task in queue
+3. Worker sends email
+4. Worker sends push notification
+5. Retry if failed
+
+---
+
+## Should Email and Database Save Be Together?
+
+No.First save in database.Then send email separately.This makes the system faster and more reliable.
+
+---
+
+## Pseudocode
+```text
+save_notification()
+add_to_queue()
+return success
+```
+
+Worker:
+```text
+take_task()
+send_email()
+if failed
+    retry
+```
+
+
+
+
 
