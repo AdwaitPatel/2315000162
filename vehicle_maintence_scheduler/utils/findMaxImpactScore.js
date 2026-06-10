@@ -37,4 +37,4 @@ function maxImpactScore(vehicles, capacity) {
 	};
 }
 
-module.exports = solveKnapsack;
+module.exports = maxImpactScore;
